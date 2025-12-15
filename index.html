@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-KINESIS: Dual Hand & Audio</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; }
+        
+        #hud-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Sci-Fi Corners */
+        .corner {
+            position: absolute;
+            width: 50px; height: 50px;
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            transition: all 0.3s;
+        }
+        .c-tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .c-tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .c-bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .c-br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        #status-bar {
+            text-align: center;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-top: 10px;
+        }
+
+        #audio-btn {
+            pointer-events: auto;
+            cursor: pointer;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 10px 20px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: 0.3s;
+        }
+        #audio-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 20px #00ffff; }
+
+        #video-preview {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            width: 160px; height: 120px;
+            border: 1px solid #333;
+            opacity: 0.5;
+            transform: scaleX(-1);
+            z-index: 5;
+        }
+        
+        .metric { font-size: 12px; color: rgba(255,255,255,0.5); }
+        .val { font-size: 18px; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="hud-layer">
+        <div class="corner c-tl"></div>
+        <div class="corner c-tr"></div>
+        <div class="corner c-bl"></div>
+        <div class="corner c-br"></div>
+        
+        <div id="status-bar">SYSTEM INITIALIZING...</div>
+        
+        <div style="position:absolute; top: 100px; left: 40px;">
+            <div class="metric">HANDS DETECTED</div>
+            <div class="val" id="hand-count">0</div>
+            <br>
+            <div class="metric">AUDIO LEVEL</div>
+            <div class="val" id="audio-level">0%</div>
+            <br>
+            <div class="metric">SIMULATION SPEED</div>
+            <div class="val" id="sim-speed">1.0x</div>
+        </div>
+        
+        <button id="audio-btn">CLICK TO ACTIVATE AUDIO ENGINE</button>
+    </div>
+
+    <video id="input-video" playsinline style="display:none;"></video>
+    <canvas id="video-preview"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+    <script>
+        // --- 1. SYSTEM CONFIG ---
+        const CONFIG = {
+            particleCount: 5000,
+            trailLength: 20,
+            colorBase: new THREE.Color(0x00ffff),
+            colorHot: new THREE.Color(0xff00ff),
+            colorCore: new THREE.Color(0xffffff)
+        };
+
+        let audioContext, analyser, dataArray;
+        let audioLevel = 0;
+        
+        // --- 2. AUDIO ENGINE ---
+        document.getElementById('audio-btn').addEventListener('click', async () => {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 64;
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                document.getElementById('audio-btn').style.display = 'none';
+                document.getElementById('status-bar').innerText = "AUDIO SENSORS ONLINE";
+            } catch (e) {
+                alert("Microphone access denied. Visuals will not react to sound.");
+            }
+        });
+
+        // --- 3. GRAPHICS ENGINE (Three.js) ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 80;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // Bloom Post-Processing
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = 2.5;
+        bloomPass.radius = 0.8;
+        
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // Particle System
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(CONFIG.particleCount * 3);
+        const colors = new Float32Array(CONFIG.particleCount * 3);
+        const velocities = new Float32Array(CONFIG.particleCount * 3);
+        const sizes = new Float32Array(CONFIG.particleCount);
+        
+        // Initialize Particles
+        for(let i=0; i<CONFIG.particleCount; i++){
+            positions[i*3] = (Math.random()-0.5)*200;
+            positions[i*3+1] = (Math.random()-0.5)*100;
+            positions[i*3+2] = (Math.random()-0.5)*100;
+            sizes[i] = Math.random();
+        }
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        // Shader Material (Custom GLSL for extra control)
+        const material = new THREE.PointsMaterial({
+            size: 1.0,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        // Use a simple circle texture
+        const sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
+        material.map = sprite;
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // Trails Line System (BufferGeometry that updates every frame)
+        const trailMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        const trailGeo = new THREE.BufferGeometry();
+        // Allocate max vertices for trails (2 hands * 100 segments)
+        const MAX_TRAIL_POINTS = 200; 
+        const trailPos = new Float32Array(MAX_TRAIL_POINTS * 3);
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+        const trails = new THREE.LineSegments(trailGeo, trailMat);
+        scene.add(trails);
+
+        // --- 4. STATE MANAGEMENT ---
+        const state = {
+            hands: [], // Stores {x, y, z} for detected hands
+            lastHandPos: [new THREE.Vector3(), new THREE.Vector3()], // For velocity calculation
+            handVelocity: 0,
+            time: 0
+        };
+
+        // --- 5. PHYSICS & ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Audio Analysis
+            if(analyser) {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+                audioLevel = sum / dataArray.length / 255; // 0.0 to 1.0
+                document.getElementById('audio-level').innerText = Math.round(audioLevel * 100) + "%";
+            }
+
+            // Time Dilation based on Hand Velocity
+            // Calculate velocity of hands
+            let currentVelocity = 0;
+            state.hands.forEach((hand, i) => {
+                if(i < 2) {
+                    const dist = hand.distanceTo(state.lastHandPos[i]);
+                    currentVelocity += dist;
+                    state.lastHandPos[i].copy(hand);
+                }
+            });
+            // Smooth velocity
+            state.handVelocity += (currentVelocity - state.handVelocity) * 0.1;
+            
+            // If hands move fast -> Time moves fast. If still -> Time freezes (min speed 0.1)
+            const timeScale = 0.2 + (state.handVelocity * 2.0) + (audioLevel * 2.0); // Audio also speeds up time
+            document.getElementById('sim-speed').innerText = timeScale.toFixed(2) + "x";
+
+            state.time += 0.01 * timeScale;
+            
+            // Particle Update Loop
+            const pos = geometry.attributes.position.array;
+            const col = geometry.attributes.color.array;
+            const vel = velocities;
+
+            // Visual Constants
+            const baseCol = CONFIG.colorBase;
+            const hotCol = CONFIG.colorHot;
+
+            for(let i=0; i<CONFIG.particleCount; i++) {
+                const px = i*3, py=i*3+1, pz=i*3+2;
+                
+                // 1. Logic: If 2 hands, form BRIDGE. If 1 hand, ORBIT.
+                let tx=0, ty=0, tz=0;
+                let attraction = 0.0;
+
+                if (state.hands.length === 2) {
+                    // DUAL HAND MODE
+                    const h1 = state.hands[0];
+                    const h2 = state.hands[1];
+                    const distHands = h1.distanceTo(h2);
+
+                    if (distHands < 15) {
+                        // FUSION CORE (Hands touching)
+                        // Particles suck into the center point
+                        const cx = (h1.x + h2.x)/2;
+                        const cy = (h1.y + h2.y)/2;
+                        const cz = (h1.z + h2.z)/2;
+                        
+                        tx = cx; ty = cy; tz = cz;
+                        attraction = 0.15; // Strong pull
+                        
+                        // Color: White Hot
+                        col[px] = 1.0; col[py] = 1.0; col[pz] = 1.0;
+                    } else {
+                        // BRIDGE (Flow between hands)
+                        // Interpolate position based on particle index
+                        const ratio = (i % 100) / 100; // 0 to 1
+                        tx = h1.x + (h2.x - h1.x) * ratio;
+                        ty = h1.y + (h2.y - h1.y) * ratio;
+                        tz = h1.z + (h2.z - h1.z) * ratio;
+                        
+                        // Add sine wave noise for "Electric Arc" look
+                        tx += Math.sin(state.time * 10 + ratio * 10) * (2 + audioLevel*5); 
+                        ty += Math.cos(state.time * 8 + ratio * 10) * (2 + audioLevel*5);
+
+                        attraction = 0.08;
+                        
+                        // Color: Gradient
+                        col[px] = baseCol.r + (hotCol.r - baseCol.r)*audioLevel;
+                        col[py] = baseCol.g + (hotCol.g - baseCol.g)*audioLevel;
+                        col[pz] = baseCol.b;
+                    }
+                } else if (state.hands.length === 1) {
+                    // SINGLE HAND MODE
+                    tx = state.hands[0].x;
+                    ty = state.hands[0].y;
+                    tz = state.hands[0].z;
+                    
+                    // Orbit noise
+                    tx += Math.sin(state.time + i) * 15;
+                    ty += Math.cos(state.time + i*0.5) * 15;
+                    
+                    attraction = 0.02;
+                    
+                    col[px] = baseCol.r; col[py] = baseCol.g; col[pz] = baseCol.b;
+                } else {
+                    // IDLE MODE
+                    tx = Math.sin(state.time * 0.5 + i*0.01) * 30;
+                    ty = Math.cos(state.time * 0.3 + i*0.01) * 20;
+                    tz = 0;
+                    attraction = 0.005;
+                    col[px] = 0.2; col[py] = 0.2; col[pz] = 0.2;
+                }
+
+                // Physics Integration
+                vel[px] += (tx - pos[px]) * attraction;
+                vel[py] += (ty - pos[py]) * attraction;
+                vel[pz] += (tz - pos[pz]) * attraction;
+
+                // Friction & Time Dilation
+                const friction = 0.90;
+                vel[px] *= friction;
+                vel[py] *= friction;
+                vel[pz] *= friction;
+
+                // Apply Velocity scaled by Time
+                pos[px] += vel[px] * timeScale;
+                pos[py] += vel[py] * timeScale;
+                pos[pz] += vel[pz] * timeScale;
+                
+                // Audio Beat Pulse (Scale)
+                // If audio is loud, particles explode outward slightly
+                if(audioLevel > 0.4) {
+                    pos[px] += (Math.random()-0.5) * audioLevel * 2;
+                    pos[py] += (Math.random()-0.5) * audioLevel * 2;
+                    pos[pz] += (Math.random()-0.5) * audioLevel * 2;
+                }
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+            
+            // Bloom Pulse with Audio
+            bloomPass.strength = 1.5 + (audioLevel * 3.0);
+
+            composer.render();
+        }
+
+        // --- 6. MEDIAPIPE INTEGRATION ---
+        function onResults(results) {
+            state.hands = []; // Reset detected hands
+
+            if (results.multiHandLandmarks) {
+                document.getElementById('hand-count').innerText = results.multiHandLandmarks.length;
+                document.getElementById('status-bar').innerText = results.multiHandLandmarks.length > 0 ? "TRACKING ACTIVE" : "SEARCHING FOR HANDS...";
+
+                for (const landmarks of results.multiHandLandmarks) {
+                    // Get Index Finger Tip (8)
+                    // Remap coordinates: Video is 0..1, World is approx -50..50
+                    const x = (0.5 - landmarks[8].x) * 120;
+                    const y = (0.5 - landmarks[8].y) * 80;
+                    const z = 0; // Keeping 2D plane for stability
+
+                    state.hands.push(new THREE.Vector3(x, y, z));
+                }
+            }
+        }
+
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        hands.setOptions({
+            maxNumHands: 2, // ENABLE DUAL HANDS
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults);
+
+        // Preview Camera
+        const videoElement = document.getElementById('input-video');
+        const canvasElement = document.getElementById('video-preview');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        const cam = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+                // Draw simple debug view
+                canvasCtx.drawImage(videoElement, 0, 0, 160, 120);
+            },
+            width: 640, height: 480
+        });
+        cam.start();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Start Loop
+        animate();
+
+    </script>
+</body>
+</html>
