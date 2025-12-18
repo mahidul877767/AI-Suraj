@@ -3,392 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ULTIMATE Particle Reactor // Final AR Mode</title>
+    <title>OMNI-HUD // NEURAL REACTOR v4.0</title>
     <style>
-        /* BASE RESET */
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: #000; 
-            font-family: 'Courier New', Courier, monospace; 
-            user-select: none;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         
-        /* 1. VIDEO LAYER (BACKGROUND) */
-        #video-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 0; /* Ensures video is behind particles */
-            overflow: hidden;
-        }
-        video {
-            width: 100%; height: 100%; object-fit: cover;
-            transform: scaleX(-1); /* Mirror effect for natural AR interaction */
-            /* Subtle blue filter for HUD feel */
-            filter: brightness(0.5) contrast(1.2) hue-rotate(180deg); 
-        }
-
-        /* 2. PARTICLE LAYER (FOREGROUND) */
-        canvas { 
-            position: absolute; top: 0; left: 0; 
-            z-index: 10; /* Ensures particles are on top of video */
-            display: block; 
-        }
-
-        /* 3. UI LAYER */
-        #ui-layer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; 
-            z-index: 20; 
-            text-shadow: 0 0 5px rgba(0,255,255,0.5);
-        }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; color: #00f2ff; user-select: none; }
         
-        #hud-top {
-            position: absolute; top: 20px; right: 20px; text-align: right;
-        }
-        .mode-label { 
-            font-size: 3rem; 
-            font-weight: 900; 
-            letter-spacing: 3px;
-            color: #00ffff;
-            transition: color 0.2s, text-shadow 0.2s;
-        }
-        .sub-text { 
-            font-size: 1rem; 
-            color: #ccc; 
-            margin-top: 5px; 
-            border-bottom: 1px solid rgba(0,255,255,0.3);
-            padding-bottom: 5px;
+        /* VIDEO BACKGROUND */
+        #video-container { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: brightness(0.35) contrast(1.5) grayscale(0.2); }
+
+        /* CANVAS */
+        canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+
+        /* HUD ELEMENTS */
+        #ui-layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; padding: 25px; }
+        
+        .panel { 
+            background: rgba(0, 15, 25, 0.7); 
+            border: 1px solid rgba(0, 242, 255, 0.4); 
+            backdrop-filter: blur(12px);
+            padding: 15px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
         }
 
-        #controls {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 15px; border-radius: 8px; border-left: 3px solid #00ffff;
-            color: #fff; font-size: 1rem; line-height: 1.6;
-        }
-        b { color: #00ffff; }
+        #top-left { position: absolute; top: 25px; left: 25px; border-left: 5px solid #00f2ff; min-width: 250px; }
+        #top-right { position: absolute; top: 25px; right: 25px; text-align: right; border-right: 5px solid #00f2ff; }
+        #bottom-info { position: absolute; bottom: 25px; left: 25px; font-size: 11px; opacity: 0.8; }
+        
+        .title { font-weight: 900; letter-spacing: 4px; font-size: 22px; color: #fff; text-shadow: 0 0 10px #00f2ff; }
+        .data-row { font-size: 12px; margin-top: 8px; display: flex; justify-content: space-between; }
+        .val { color: #fff; font-weight: bold; }
 
-        /* STARTUP / ERROR SCREEN */
-        #loading-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; color: #00ffff;
+        /* RADAR SYSTEM */
+        #hand-radar {
+            position: absolute; width: 100px; height: 100px;
+            border: 1px solid rgba(0, 242, 255, 0.5); border-radius: 50%;
+            display: none; border-style: dashed; animation: spin 5s linear infinite;
         }
-        .error-message { 
-            color: red !important; 
-            text-shadow: 0 0 10px red;
-            font-size: 1.2rem !important;
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* LOADING */
+        #boot-screen {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <h1>SYSTEM BOOT SEQUENCE...</h1>
-        <p id="status-text">Requesting Camera Access...</p>
-        <p style="color: #666; font-size: 0.8rem; margin-top:20px;">(REMINDER: Must be run on a Local Server - e.g., Live Server)</p>
+    <div id="boot-screen">
+        <h1 class="title">OMNI_OS v4.0</h1>
+        <p id="boot-status" style="font-size: 12px; letter-spacing: 2px;">AUTHORIZING NEURAL LINK...</p>
     </div>
 
-    <div id="video-container">
-        <video id="input-video" playsinline></video>
-    </div>
-
+    <div id="video-container"><video id="input-video" playsinline></video></div>
+    
     <div id="ui-layer">
-        <div id="controls">
-            <div>✊ <b>FIST:</b> Black Hole (Attract)</div>
-            <div>🖐 <b>PALM:</b> Shockwave (Repel)</div>
-            <div>☝️ <b>1 FINGER:</b> Sphere</div>
-            <div>✌️ <b>2 FINGERS:</b> Torus</div>
-            <div>🤟 <b>3 FINGERS:</b> Cube</div>
-            <div>🖖 <b>4 FINGERS:</b> Vortex (Galaxy)</div>
+        <div id="top-left" class="panel">
+            <div class="title" id="mode-ui">SCANNING...</div>
+            <div class="data-row">SYNC_RATE: <span class="val" id="sync-val">0ms</span></div>
+            <div class="data-row">TIME_DILATION: <span class="val" id="time-val">1.0x</span></div>
         </div>
 
-        <div id="hud-top">
-            <div class="mode-label" id="mode-display">SCANNING</div>
-            <div class="sub-text">ACTIVE AR HUD // GESTURE CONTROL</div>
+        <div id="top-right" class="panel">
+            <div style="font-size: 10px; opacity: 0.5;">CORE_DIAGNOSTICS</div>
+            <div class="data-row">FPS: <span class="val" id="fps">--</span></div>
+            <div class="data-row">THEME: <span class="val" id="theme-name">CYBER</span></div>
         </div>
+
+        <div id="bottom-info" class="panel">
+            <b>[GESTURES]</b> PINCH: Gravity | FIST: Black Hole | PALM: Shockwave<br>
+            <b>[COMMANDS]</b> 1-3: Themes | S: Snapshot | SPACE: Reset Position
+        </div>
+
+        <div id="hand-radar"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
     <script>
-        // --- 0. ERROR CHECK & ELEMENTS ---
-        const statusText = document.getElementById('status-text');
-        const loadingScreen = document.getElementById('loading-screen');
+        const state = { 
+            detected: false, mode: 'IDLE', timeScale: 1.0, 
+            handPos: new THREE.Vector3(), theme: 1, pinch: false 
+        };
+        const count = 6000;
 
-        if (location.protocol === 'file:') {
-            statusText.innerHTML = "❌ **CAMERA BLOCKED!** Please run this using a **Local Server** (Live Server, Python http.server, etc.)";
-            statusText.classList.add('error-message');
-            loadingScreen.style.backgroundColor = 'rgba(50, 0, 0, 0.9)';
-            throw new Error("Local Server Required for Camera Access");
-        }
-
-        // --- 1. CONFIG ---
-        const PARTICLE_COUNT = 5000;
-        const PARTICLE_SIZE = 1.8;
-
-        // --- 2. SETUP THREE.JS (TRANSPARENT) ---
+        // 1. THREE.JS ENGINE
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 60;
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.z = 75;
 
-        // Alpha: true is CRUCIAL for showing the video background
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // BLOOM Setup
-        const renderScene = new THREE.RenderPass(scene, camera);
-        const bloomPass = new THREE.UnrealBloomPass(
-            new THREE.Vector2(window.innerWidth, window.innerHeight), 
-            1.5, 0.4, 0.85
-        );
-        bloomPass.threshold = 0;
-        bloomPass.strength = 1.8; 
-        bloomPass.radius = 0.5;
-
         const composer = new THREE.EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
+        composer.addPass(new THREE.RenderPass(scene, camera));
+        const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.4, 0.85);
+        composer.addPass(bloom);
 
-        // --- 3. PARTICLES & BASE SHAPES ---
+        // 2. PARTICLE & GEOMETRY
         const geometry = new THREE.BufferGeometry();
-        const positions = [];
-        const colors = [];
-        const basePos = { sphere: [], cube: [], torus: [], vortex: [] };
-        const colorObj = new THREE.Color();
+        const posArr = new Float32Array(count * 3);
+        const colArr = new Float32Array(count * 3);
+        const baseSphere = [];
 
-        // Create Particle Texture (Soft Glow)
-        const canvas = document.createElement('canvas');
-        canvas.width = 32; canvas.height = 32;
-        const context = canvas.getContext('2d');
-        const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
-        gradient.addColorStop(0, 'rgba(255,255,255,1)');
-        gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
-        context.fillStyle = gradient;
-        context.fillRect(0,0,32,32);
-        const particleTexture = new THREE.CanvasTexture(canvas);
+        for(let i=0; i<count; i++) {
+            const i3 = i * 3;
+            posArr[i3] = (Math.random()-0.5)*250;
+            posArr[i3+1] = (Math.random()-0.5)*250;
+            posArr[i3+2] = (Math.random()-0.5)*100;
 
-        // Generate particle positions and target shapes
-        for(let i=0; i<PARTICLE_COUNT; i++) {
-            positions.push((Math.random()-0.5)*150, (Math.random()-0.5)*100, (Math.random()-0.5)*50);
-            colors.push(1,1,1);
-            
-            // Sphere (Fibonacci)
-            const phi = Math.acos(1 - 2 * i / PARTICLE_COUNT);
+            const phi = Math.acos(1 - 2*i/count);
             const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-            const r = 25;
-            basePos.sphere.push(r*Math.cos(theta)*Math.sin(phi), r*Math.sin(theta)*Math.sin(phi), r*Math.cos(phi));
-
-            // Cube
-            const s = 35;
-            basePos.cube.push((Math.random()-0.5)*s, (Math.random()-0.5)*s, (Math.random()-0.5)*s);
-
-            // Torus
-            const u = Math.random()*Math.PI*2, v = Math.random()*Math.PI*2;
-            const R=25, t=8;
-            basePos.torus.push((R+t*Math.cos(v))*Math.cos(u), (R+t*Math.cos(v))*Math.sin(u), t*Math.sin(v));
-            
-            // Vortex (Spiral)
-            const ang = i * 0.1;
-            const dst = Math.sqrt(i)*0.8;
-            basePos.vortex.push(Math.cos(ang)*dst, Math.sin(ang)*dst, (Math.random()-0.5)*5);
+            baseSphere.push(35*Math.cos(theta)*Math.sin(phi), 35*Math.sin(theta)*Math.sin(phi), 35*Math.cos(phi));
         }
+        geometry.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
 
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-        const material = new THREE.PointsMaterial({
-            size: PARTICLE_SIZE, vertexColors: true, map: particleTexture,
-            blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
-        });
-
-        const particles = new THREE.Points(geometry, material);
+        const mat = new THREE.PointsMaterial({ size: 1.4, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending });
+        const particles = new THREE.Points(geometry, mat);
         scene.add(particles);
 
-        // --- 4. ANIMATION & PHYSICS LOOP ---
-        const state = { detected: false, mode: 'IDLE', handPos: new THREE.Vector3(0,0,0), time: 0 };
-        const clock = new THREE.Clock();
+        // 3. THEME LOGIC
+        function updateTheme() {
+            const themes = { 1: {n: 'CYBER', h: 0.5}, 2: {n: 'SOLAR', h: 0.05}, 3: {n: 'PHANTOM', h: 0.75} };
+            document.getElementById('theme-name').innerText = themes[state.theme].n;
+            return themes[state.theme].h;
+        }
 
+        // 4. MAIN ANIMATION LOOP
+        const clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
-            const dt = clock.getDelta();
-            state.time += dt;
+            const dt = clock.getDelta() * state.timeScale;
+            const time = clock.getElapsedTime();
             
-            const posAttr = geometry.attributes.position;
-            const colAttr = geometry.attributes.color;
-            const modeLabel = document.getElementById('mode-display');
-            
-            // UI Update
-            if(state.detected) {
-                modeLabel.innerText = state.mode;
-                modeLabel.style.color = "#00ffff";
-                modeLabel.style.textShadow = '0 0 20px rgba(0,255,255,1)';
-            } else {
-                modeLabel.innerText = "SCANNING";
-                modeLabel.style.color = "#ff3333";
-                modeLabel.style.textShadow = '0 0 10px rgba(255,51,51,0.5)';
-            }
+            document.getElementById('fps').innerText = Math.round(1/(dt/state.timeScale || 0.01));
+            document.getElementById('time-val').innerText = state.timeScale.toFixed(1) + 'x';
 
-            const hx = state.handPos.x;
-            const hy = state.handPos.y;
+            const p = geometry.attributes.position.array;
+            const c = geometry.attributes.color.array;
+            const h = updateTheme();
 
-            for(let i=0; i<PARTICLE_COUNT; i++) {
-                const ix = i*3, iy = i*3+1, iz = i*3+2;
+            for(let i=0; i<count; i++) {
+                const i3 = i * 3;
                 let tx, ty, tz;
-                let ease = 0.05; // Base smoothing speed
+                let ease = 0.06 * state.timeScale;
 
-                // --- MODE LOGIC ---
-                if (!state.detected) {
-                    // IDLE: Subtle slow movement
-                    tx = posAttr.array[ix] + Math.sin(state.time * 0.2 + i * 0.01) * 0.2;
-                    ty = posAttr.array[iy] + Math.cos(state.time * 0.3 + i * 0.01) * 0.2;
-                    tz = posAttr.array[iz];
-                    colorObj.setHSL(0.6, 0.5, 0.5); 
-                    ease = 0.01;
-                }
-                else if (state.mode === 'BLACKHOLE') {
-                    // Attract to hand
-                    tx = hx; ty = hy; tz = 0;
-                    ease = 0.15; colorObj.setHex(0xff3300); // Red
-                }
-                else if (state.mode === 'SHOCKWAVE') {
-                    // Repel from hand
-                    const dx = posAttr.array[ix] - hx, dy = posAttr.array[iy] - hy;
-                    const d = Math.sqrt(dx*dx + dy*dy) + 0.01;
-                    const f = Math.max(0, (60-d)*2); 
-                    tx = posAttr.array[ix] + (dx/d)*f; 
-                    ty = posAttr.array[iy] + (dy/d)*f; 
-                    tz = posAttr.array[iz];
-                    ease = 0.2; colorObj.setHex(0x00ffff); // Cyan
-                }
-                else if (state.mode === 'CHAOS') {
-                    // Random Explosion
-                    tx = posAttr.array[ix] + (Math.random()-0.5) * 20;
-                    ty = posAttr.array[iy] + (Math.random()-0.5) * 20;
-                    tz = posAttr.array[iz] + (Math.random()-0.5) * 20;
-                    ease = 0.2; colorObj.setHSL(Math.random(), 1, 0.7); // Rainbow
-                }
-                else {
-                    // FORMATIONS (Shapes)
-                    let bx, by, bz;
-                    if(state.mode === 'CUBE') { 
-                        bx=basePos.cube[ix]; by=basePos.cube[iy]; bz=basePos.cube[iz]; colorObj.setHex(0x00ff00); 
+                if(!state.detected) {
+                    tx = baseSphere[i3] + Math.sin(time + i*0.1)*3;
+                    ty = baseSphere[i3+1] + Math.cos(time + i*0.1)*3;
+                    tz = baseSphere[i3+2];
+                } else {
+                    if(state.pinch) { // Singularity
+                        tx = state.handPos.x; ty = state.handPos.y; tz = 0;
+                        ease = 0.25;
+                    } else if(state.mode === 'SINGULARITY') {
+                        tx = state.handPos.x; ty = state.handPos.y; tz = 0;
+                        ease = 0.12;
+                    } else if(state.mode === 'REPEL') {
+                        const dx = p[i3] - state.handPos.x, dy = p[i3+1] - state.handPos.y;
+                        const d = Math.sqrt(dx*dx + dy*dy) + 0.1;
+                        tx = p[i3] + (dx/d)*15; ty = p[i3+1] + (dy/d)*15; tz = p[i3+2];
+                        ease = 0.15;
+                    } else {
+                        tx = baseSphere[i3] + state.handPos.x;
+                        ty = baseSphere[i3+1] + state.handPos.y;
+                        tz = baseSphere[i3+2];
                     }
-                    else if(state.mode === 'TORUS') { 
-                        bx=basePos.torus[ix]; by=basePos.torus[iy]; bz=basePos.torus[iz]; colorObj.setHex(0xaa00ff); 
-                    }
-                    else if(state.mode === 'VORTEX') { 
-                        bx=basePos.vortex[ix]; by=basePos.vortex[iy]; bz=basePos.vortex[iz]; colorObj.setHex(0xffaa00); 
-                        const s = state.time*1.5; // Slower vortex rotation
-                        const rx = bx*Math.cos(s) - by*Math.sin(s);
-                        const ry = bx*Math.sin(s) + by*Math.cos(s);
-                        bx=rx; by=ry;
-                    }
-                    else { // SPHERE
-                        bx=basePos.sphere[ix]; by=basePos.sphere[iy]; bz=basePos.sphere[iz]; colorObj.setHSL((state.time*0.05)%1, 0.8, 0.5); 
-                    }
-
-                    // Shape Rotation
-                    if(state.mode !== 'VORTEX') {
-                        const s = state.time * 0.5;
-                        const rx = bx*Math.cos(s) - bz*Math.sin(s);
-                        const rz = bx*Math.sin(s) + bz*Math.cos(s);
-                        bx=rx; bz=rz;
-                    }
-
-                    // Shift shape to hand position
-                    tx = bx + hx; ty = by + hy; tz = bz;
                 }
 
-                // Apply Movement (Lerp: Linear Interpolation)
-                posAttr.array[ix] += (tx - posAttr.array[ix]) * ease;
-                posAttr.array[iy] += (ty - posAttr.array[iy]) * ease;
-                posAttr.array[iz] += (tz - posAttr.array[iz]) * ease;
+                p[i3] += (tx - p[i3]) * ease;
+                p[i3+1] += (ty - p[i3+1]) * ease;
+                p[i3+2] += (tz - p[i3+2]) * ease;
 
-                // Apply Color
-                colAttr.array[ix] = colorObj.r; 
-                colAttr.array[iy] = colorObj.g; 
-                colAttr.array[iz] = colorObj.b;
+                const col = new THREE.Color().setHSL(h + Math.sin(time*0.5 + i*0.001)*0.05, 0.8, 0.6);
+                c[i3] = col.r; c[i3+1] = col.g; c[i3+2] = col.b;
             }
 
-            posAttr.needsUpdate = true;
-            colAttr.needsUpdate = true;
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
             composer.render();
         }
 
-        // --- 5. MEDIA PIPE HAND TRACKING ---
+        // 5. GESTURE & CAMERA SYSTEM
         function onResults(results) {
-            loadingScreen.style.display = 'none';
+            document.getElementById('boot-screen').style.display = 'none';
+            const radar = document.getElementById('hand-radar');
+            
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 state.detected = true;
                 const lm = results.multiHandLandmarks[0];
+                
+                // Radar Position
+                radar.style.display = 'block';
+                radar.style.left = (1 - lm[9].x) * window.innerWidth - 50 + 'px';
+                radar.style.top = lm[9].y * window.innerHeight - 50 + 'px';
 
-                // Map hand position to 3D space
-                const x = (0.5 - lm[9].x) * 150; 
-                const y = (0.5 - lm[9].y) * 100;
-                state.handPos.lerp(new THREE.Vector3(x, y, 0), 0.2);
+                // Neural Logic
+                state.timeScale = THREE.MathUtils.mapLinear(1 - lm[9].y, 0, 1, 0.2, 3.5);
+                state.handPos.lerp(new THREE.Vector3((0.5 - lm[9].x)*160, (0.5 - lm[9].y)*110, 0), 0.2);
 
-                // Simple Finger Counting
-                const isUp = (t, b) => lm[t].y < lm[b].y;
-                let f = 0;
-                if(isUp(8,6)) f++; // Index
-                if(isUp(12,10)) f++; // Middle
-                if(isUp(16,14)) f++; // Ring
-                if(isUp(20,18)) f++; // Pinky
-                if(Math.abs(lm[4].x - lm[2].x) > 0.05) f++; // Thumb (X-axis check)
+                const d = (p1, p2) => Math.sqrt(Math.pow(lm[p1].x-lm[p2].x,2) + Math.pow(lm[p1].y-lm[p2].y,2));
+                state.pinch = d(4, 8) < 0.035;
+                
+                const f = [8,12,16,20].filter(i => lm[i].y < lm[i-2].y).length;
+                if(state.pinch) state.mode = 'GRAVITY_CORE';
+                else if(f === 0) state.mode = 'SINGULARITY';
+                else if(f >= 4) state.mode = 'REPEL';
+                else state.mode = 'NEURAL_LINK';
 
-                // Gesture Logic
-                const rockSign = isUp(8,6) && isUp(20,18) && !isUp(12,10) && !isUp(16,14);
-
-                if(rockSign) state.mode = 'CHAOS'; 
-                else if(f===0) state.mode = 'BLACKHOLE';
-                else if(f===5) state.mode = 'SHOCKWAVE';
-                else if(f===2) state.mode = 'TORUS';
-                else if(f===3) state.mode = 'CUBE';
-                else if(f===4) state.mode = 'VORTEX';
-                else state.mode = 'SPHERE';
+                document.getElementById('mode-ui').innerText = state.mode;
             } else {
                 state.detected = false;
+                radar.style.display = 'none';
+                document.getElementById('mode-ui').innerText = 'SEARCHING...';
             }
         }
 
         const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-        hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
+        hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6});
         hands.onResults(onResults);
 
         const video = document.getElementById('input-video');
-        const cam = new Camera(video, {
-            onFrame: async () => { await hands.send({image: video}); },
-            width: 640, height: 480
-        });
-        
-        cam.start()
-        .then(() => { statusText.innerText = "System Active. Displaying AR feed..."; })
-        .catch(err => {
-            statusText.innerHTML = "❌ **CAMERA FAILED!** Check permissions and console.";
-            statusText.classList.add('error-message');
-            console.error("Camera start error:", err);
+        const cam = new Camera(video, {onFrame: async () => { await hands.send({image: video}); }, width: 1280, height: 720});
+        cam.start();
+
+        // 6. SYSTEM UTILS
+        window.addEventListener('keydown', (e) => {
+            if(e.key === '1') state.theme = 1;
+            if(e.key === '2') state.theme = 2;
+            if(e.key === '3') state.theme = 3;
+            if(e.key.toLowerCase() === 's') {
+                const link = document.createElement('a');
+                link.download = 'omni_capture.png';
+                link.href = renderer.domElement.toDataURL();
+                link.click();
+            }
         });
 
         animate();
-
-        // Handle Resize
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth/window.innerHeight;
-            camera.updateProjectionMatrix();
+            camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
-    </html>
+</html>
