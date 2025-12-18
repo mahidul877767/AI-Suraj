@@ -3,80 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEURAL-LINK // OMNI_OS v5.0</title>
+    <title>NEURAL OMNI-OS // MASTER FIX</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap');
         
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; color: #00f2ff; }
         
         /* VIDEO LAYER */
-        #video-container { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: brightness(0.3) contrast(1.2) sepia(0.5) hue-rotate(140deg); }
+        #video-container { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: brightness(0.4) contrast(1.2) blue-shift; opacity: 0; transition: opacity 1s; }
 
-        /* NEURAL DATA STREAMS (SIDES) */
-        .data-column {
+        /* DATA FURNITURE (BRAIN STREAMS) */
+        .stream {
             position: absolute; top: 0; width: 15%; height: 100%; z-index: 5;
-            font-family: 'Share Tech Mono', monospace; font-size: 9px;
-            color: rgba(0, 242, 255, 0.3); overflow: hidden; pointer-events: none;
-            display: flex; flex-direction: column; line-height: 1.2;
+            font-family: 'Share Tech Mono', monospace; font-size: 10px;
+            color: rgba(0, 242, 255, 0.2); overflow: hidden; pointer-events: none;
         }
-        #stream-l { left: 5px; }
-        #stream-r { right: 5px; text-align: right; }
+        #stream-l { left: 10px; } #stream-r { right: 10px; text-align: right; }
 
-        /* UI PANELS */
+        /* HUD ELEMENTS */
         .hud-panel {
-            position: absolute; background: rgba(0, 15, 25, 0.8);
-            border: 1px solid rgba(0, 242, 255, 0.4); backdrop-filter: blur(10px);
-            padding: 10px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            position: absolute; background: rgba(0, 10, 20, 0.85);
+            border: 1px solid rgba(0, 242, 255, 0.4); backdrop-filter: blur(15px);
+            padding: 12px; box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
         }
-        #header { top: 15px; left: 50%; transform: translateX(-50%); width: 70%; text-align: center; border-top: 4px solid #00f2ff; }
-        #console { bottom: 15px; left: 15px; width: 220px; font-size: 10px; font-family: 'Share Tech Mono'; color: #00f2ff; height: 80px; overflow: hidden; }
-        #stats { top: 15px; right: 15px; text-align: right; font-size: 11px; }
+        #header { top: 20px; left: 50%; transform: translateX(-50%); width: 70%; text-align: center; border-bottom: 3px solid #00f2ff; }
+        #log-box { bottom: 20px; left: 20px; width: 250px; font-family: 'Share Tech Mono'; font-size: 11px; height: 100px; overflow: hidden; }
 
-        /* START OVERLAY (FIXED) */
-        #boot-overlay {
-            position: fixed; inset: 0; background: #000; z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        /* START SCREEN (THE FIX) */
+        #boot-screen {
+            position: fixed; inset: 0; background: radial-gradient(circle, #001a1a 0%, #000 100%);
+            z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        #boot-btn {
+        #start-trigger {
             padding: 25px 50px; background: transparent; border: 2px solid #00f2ff;
             color: #00f2ff; font-family: 'Orbitron'; font-size: 20px; cursor: pointer;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); text-transform: uppercase;
-            transition: 0.3s;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.3); transition: 0.2s;
         }
-        #boot-btn:active { transform: scale(0.95); background: #00f2ff; color: #000; }
+        #start-trigger:active { transform: scale(0.9); background: #00f2ff; color: #000; }
         
         canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div id="boot-overlay">
-        <h1 style="letter-spacing: 8px; text-shadow: 0 0 10px #00f2ff;">NEURAL NEXUS</h1>
-        <p style="font-size: 10px; margin-bottom: 30px; opacity: 0.6;">v5.0.4 FINAL // CORE READY</p>
-        <button id="boot-btn">INITIALIZE NEURAL LINK</button>
+    <div id="boot-screen">
+        <h1 style="letter-spacing: 10px; margin-bottom: 5px;">OMNI-OS</h1>
+        <p style="font-size: 10px; opacity: 0.5; margin-bottom: 40px;">NEURAL INTERFACE v6.0 // STABLE BUILD</p>
+        <button id="start-trigger">INITIALIZE LINK</button>
+        <p id="err-display" style="color: #ff3333; font-size: 12px; margin-top: 20px;"></p>
     </div>
 
-    <div id="stream-l" class="data-column"></div>
-    <div id="stream-r" class="data-column"></div>
+    <div id="stream-l" class="stream"></div>
+    <div id="stream-r" class="stream"></div>
 
-    <div id="video-container"><video id="webcam" muted playsinline></video></div>
+    <div id="video-container"><video id="cam-feed" muted playsinline></video></div>
     
     <div id="ui-layer">
         <div id="header" class="hud-panel">
-            <div style="font-weight: 900; letter-spacing: 4px;" id="mode-text">SYNCING BIOMETRICS...</div>
-            <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">TIME_DILATION: <span id="dilation">1.0</span>x | REACTOR_STABILITY: 98.4%</div>
+            <div style="font-weight: 900; letter-spacing: 5px;" id="status-ui">BIOMETRIC SCAN...</div>
+            <div style="font-size: 9px; margin-top: 5px; opacity: 0.6;">SYSTEM STABILITY: 99.9% | NEURAL LOAD: <span id="load">0</span>%</div>
         </div>
 
-        <div id="console" class="hud-panel">
-            <div style="border-bottom: 1px solid rgba(0,242,255,0.3); margin-bottom: 5px; font-weight: bold;">SYSTEM_LOG:</div>
-            <div id="log-content">> INITIALIZING KERNEL...</div>
-        </div>
-
-        <div id="stats" class="hud-panel">
-            HAND_POS: <span id="h-pos">--</span><br>
-            SYNC_RATE: <span id="fps">--</span> FPS<br>
-            CORE_TEMP: 34.2°C
+        <div id="log-box" class="hud-panel">
+            <div style="color: #00f2ff; border-bottom: 1px solid rgba(0,242,255,0.2); margin-bottom: 5px;">CORE_LOGS:</div>
+            <div id="inner-log"></div>
         </div>
     </div>
 
@@ -88,145 +79,124 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
     <script>
-        const state = { detected: false, handPos: new THREE.Vector3(), timeScale: 1.0, isPinching: false };
-        
-        // --- 1. HUD LOGGING SYSTEM ---
-        function sysLog(msg) {
-            const log = document.getElementById('log-content');
-            const entry = document.createElement('div');
-            entry.innerText = `> ${msg}`;
-            log.prepend(entry);
-            if(log.children.length > 5) log.removeChild(log.lastChild);
+        const state = { active: false, detected: false, hand: new THREE.Vector3(), mode: 'IDLE' };
+
+        // 1. SYSTEM LOGGING
+        function pushLog(m) {
+            const l = document.getElementById('inner-log');
+            l.innerHTML = `> ${m}<br>` + l.innerHTML;
+            if(l.children.length > 5) l.lastChild.remove();
         }
 
-        // --- 2. DATA STREAM EFFECT ---
-        function initDataStreams() {
-            const createLine = () => {
-                const chars = "01ABCDEF#$@&*";
-                let str = "";
-                for(let i=0; i<15; i++) str += chars[Math.floor(Math.random()*chars.length)];
-                return str;
-            };
-            setInterval(() => {
-                const l = document.getElementById('stream-l'), r = document.getElementById('stream-r');
-                l.innerHTML = `<div>${createLine()}</div>` + l.innerHTML;
-                r.innerHTML = `<div>${createLine()}</div>` + r.innerHTML;
-                if(l.children.length > 40) { l.lastChild.remove(); r.lastChild.remove(); }
-            }, 100);
-        }
+        // 2. DATA STREAMS
+        setInterval(() => {
+            if(!state.active) return;
+            const l = document.getElementById('stream-l'), r = document.getElementById('stream-r');
+            const code = () => Math.random().toString(16).toUpperCase().slice(2,10);
+            l.innerHTML = `<div>${code()}</div>` + l.innerHTML;
+            r.innerHTML = `<div>${code()}</div>` + r.innerHTML;
+            if(l.children.length > 40) { l.lastChild.remove(); r.lastChild.remove(); }
+        }, 150);
 
-        // --- 3. THREE.JS ENGINE (NEURAL CORE) ---
+        // 3. GRAPHICS ENGINE
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.z = 60;
+        camera.position.z = 65;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
         const composer = new THREE.EffectComposer(renderer);
         composer.addPass(new THREE.RenderPass(scene, camera));
-        composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85));
+        composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.4, 0.85));
 
-        // Create Particles
-        const count = 3500;
+        const count = 4000;
         const geo = new THREE.BufferGeometry();
         const posArr = new Float32Array(count * 3);
-        const basePos = [];
+        const base = [];
         for(let i=0; i<count; i++) {
             const i3 = i * 3;
             const phi = Math.acos(1 - 2*i/count), theta = Math.PI * (1 + Math.sqrt(5)) * i;
-            basePos.push(30*Math.cos(theta)*Math.sin(phi), 30*Math.sin(theta)*Math.sin(phi), 30*Math.cos(phi));
-            posArr[i3] = basePos[i3]; posArr[i3+1] = basePos[i3+1]; posArr[i3+2] = basePos[i3+2];
+            base.push(30*Math.cos(theta)*Math.sin(phi), 30*Math.sin(theta)*Math.sin(phi), 30*Math.cos(phi));
+            posArr[i3] = base[i3]; posArr[i3+1] = base[i3+1]; posArr[i3+2] = base[i3+2];
         }
         geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-        const mat = new THREE.PointsMaterial({ size: 1.2, color: 0x00f2ff, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.8 });
-        const core = new THREE.Points(geo, mat);
-        scene.add(core);
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 1.2, color: 0x00f2ff, transparent: true, blending: THREE.AdditiveBlending }));
+        scene.add(pts);
 
-        // --- 4. ANIMATION LOOP ---
-        const clock = new THREE.Clock();
-        function render() {
-            requestAnimationFrame(render);
-            const dt = clock.getDelta() * state.timeScale;
-            const time = clock.getElapsedTime();
-
-            document.getElementById('fps').innerText = Math.round(1/(dt/state.timeScale || 0.01));
-            document.getElementById('dilation').innerText = state.timeScale.toFixed(1);
-
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
             const p = geo.attributes.position.array;
             for(let i=0; i<count; i++) {
                 const i3 = i * 3;
-                let targetX = basePos[i3] + (state.detected ? state.handPos.x : 0);
-                let targetY = basePos[i3+1] + (state.detected ? state.handPos.y : 0);
-                let ease = 0.06 * state.timeScale;
-
-                if(state.isPinching) { targetX = state.handPos.x; targetY = state.handPos.y; ease = 0.2; }
-
-                p[i3] += (targetX - p[i3]) * ease;
-                p[i3+1] += (targetY - p[i3+1]) * ease;
+                let tx = base[i3] + (state.detected ? state.hand.x : 0);
+                let ty = base[i3+1] + (state.detected ? state.hand.y : 0);
+                let ease = state.mode === 'CORE' ? 0.2 : 0.07;
+                if(state.mode === 'CORE') { tx = state.hand.x; ty = state.hand.y; }
+                p[i3] += (tx - p[i3]) * ease;
+                p[i3+1] += (ty - p[i3+1]) * ease;
             }
             geo.attributes.position.needsUpdate = true;
             composer.render();
+            document.getElementById('load').innerText = Math.floor(Math.random() * 20) + 70;
         }
 
-        // --- 5. CAMERA & MEDIAPIPE LOGIC ---
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-        hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6});
-        
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                if(!state.detected) sysLog("Neural Link established.");
-                state.detected = true;
-                const lm = results.multiHandLandmarks[0];
-                
-                // Track Middle Finger for Position
-                state.handPos.lerp(new THREE.Vector3((0.5 - lm[9].x)*150, (0.5 - lm[9].y)*100, 0), 0.2);
-                document.getElementById('h-pos').innerText = `${Math.round(state.handPos.x)}, ${Math.round(state.handPos.y)}`;
+        // 4. THE BOOT SEQUENCE (SOLVES THE BUTTON PROBLEM)
+        const video = document.getElementById('cam-feed');
+        const trigger = document.getElementById('start-trigger');
+        const errDisp = document.getElementById('err-display');
 
-                // Time Dilation based on hand height
-                state.timeScale = THREE.MathUtils.mapLinear(1 - lm[9].y, 0, 1, 0.2, 3.5);
-
-                // Detect Pinch (Thumb Tip to Index Tip)
-                const dist = Math.sqrt(Math.pow(lm[4].x-lm[8].x,2) + Math.pow(lm[4].y-lm[8].y,2));
-                state.isPinching = dist < 0.04;
-                document.getElementById('mode-text').innerText = state.isPinching ? "SINGULARITY_DETECTION" : "NEURAL_LINK_ACTIVE";
-            } else {
-                state.detected = false;
-                document.getElementById('mode-text').innerText = "SEARCHING_FOR_BIOMETRICS...";
-            }
-        });
-
-        // --- 6. INITIALIZATION (THE FIX) ---
-        const video = document.getElementById('webcam');
-        const bootBtn = document.getElementById('boot-btn');
-
-        bootBtn.addEventListener('click', async () => {
-            bootBtn.innerText = "AUTHORIZING...";
-            sysLog("Requesting Camera Permissions...");
-            
+        async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 1280, height: 720 } });
+                trigger.innerText = "AUTHORIZING...";
+                pushLog("Requesting hardware access...");
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } 
+                });
+                
                 video.srcObject = stream;
                 await video.play();
+                video.style.opacity = "1";
                 
-                const cameraUtils = new Camera(video, {
+                const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+                hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6});
+                hands.onResults((res) => {
+                    if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                        state.detected = true;
+                        const lm = res.multiHandLandmarks[0];
+                        state.hand.lerp(new THREE.Vector3((0.5 - lm[9].x)*150, (0.5 - lm[9].y)*100, 0), 0.2);
+                        const dist = Math.sqrt(Math.pow(lm[4].x-lm[8].x,2) + Math.pow(lm[4].y-lm[8].y,2));
+                        state.mode = dist < 0.04 ? 'CORE' : 'SCAN';
+                        document.getElementById('status-ui').innerText = state.mode === 'CORE' ? 'SINGULARITY' : 'NEURAL_LINK';
+                    } else {
+                        state.detected = false;
+                        document.getElementById('status-ui').innerText = 'SEARCHING...';
+                    }
+                });
+
+                const cameraHandler = new Camera(video, {
                     onFrame: async () => { await hands.send({image: video}); },
                     width: 1280, height: 720
                 });
                 
-                await cameraUtils.start();
-                document.getElementById('boot-overlay').style.display = 'none';
-                sysLog("Camera Stream Started.");
-                initDataStreams();
-                render();
+                await cameraHandler.start();
+                state.active = true;
+                document.getElementById('boot-screen').style.display = 'none';
+                pushLog("Neural Link Online.");
+                animate();
+
             } catch (err) {
-                sysLog(`ERROR: ${err.name}`);
-                alert("CAMERA ERROR: Please ensure you are using HTTPS and have granted camera permissions.");
-                bootBtn.innerText = "RETRY BOOT";
+                console.error(err);
+                errDisp.innerText = "ERROR: " + err.message;
+                trigger.innerText = "RETRY BOOT";
+                pushLog("CRITICAL FAILURE: " + err.name);
             }
-        });
+        }
+
+        trigger.addEventListener('click', startCamera);
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
